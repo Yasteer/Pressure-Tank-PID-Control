@@ -1,0 +1,89 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.15">
+  <POU Name="MAIN" Id="{175c1955-6c54-4ef6-91b1-26b9188e579d}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	Required_Tank_Pressure				:	REAL	:=	250.00;		//	kPa(a)	
+	Simulated_Pressure_From_IO_Card		:	INT		:=	0;			//	4mA
+	
+	fInflowRate							:	LREAL	:=	0.0;
+	fOutflowRate						:	LREAL	:=	2500;		//	Assume A Constant Drain To Feed Plant Equipment
+	
+	RandomFlowGenerator					:	FB_CTRL_NOISE_GENERATOR;	
+	NoiseGeneratorMode					: 	E_CTRL_MODE						:=	E_CTRL_MODE.eCTRL_MODE_ACTIVE;
+	NoiseSignal							: 	LREAL;
+	RandomFlowGeneratorState			: 	Tc2_ControllerToolbox.E_CTRL_STATE;
+	RandomFlowGeneratorErrorId			: 	Tc2_ControllerToolbox.E_CTRL_ERRORCODES;
+	RandomFlowGeneratorErrorDetected	: 	BOOL;
+	RandomFlowGeneratorParameters		: 	ST_CTRL_NOISE_GENERATOR_PARAMS;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[{Region	"Read Tanks Pressure Transducer"}
+Tank_Pressure(Input_mA	:=	Simulated_Pressure_From_IO_Card);
+{endregion}
+
+{Region "Perform PID Control On Input Control Valve"}
+Input_Control_Valve(Controller_Setpoint					:=	Required_Tank_Pressure,
+					Current_Process_Variable_Setpoint	:=	Tank_Pressure.Input_SI,
+					Manual_Automatic_Mode				:=	PID_Modes.Automatic);
+{endregion}
+
+{Region "Random Flow Generator"}
+//	Generate Some Gaussian Noise To Simulate PID Control Through Disturbances
+RandomFlowGeneratorParameters.fAmplitude		:=	1000.0;
+RandomFlowGeneratorParameters.tCtrlCycleTime	:=	T#10MS;
+RandomFlowGeneratorParameters.tTaskCycleTime	:=	T#10MS;
+
+RandomFlowGenerator(fManSyncValue	:=	20.0,
+					eMode			:=	NoiseGeneratorMode,
+					fOut			=>	NoiseSignal,
+					eState			=>	RandomFlowGeneratorState,
+					eErrorId		=>	RandomFlowGeneratorErrorId,
+					bError			=>	RandomFlowGeneratorErrorDetected,
+					stParams		:=	RandomFlowGeneratorParameters);
+	
+{endregion}
+
+{Region "Simulate Field Input"}
+// Simulate inflow proportional to valve position
+fInflowRate := Input_Control_Valve.HMI_Valve_Reference * 330.0; // Max 10 kPa/sec new 300
+
+// Update tank pressure
+Simulated_Pressure_From_IO_Card := LREAL_TO_INT(Simulated_Pressure_From_IO_Card*0.05 + (fInflowRate - fOutflowRate)(* * 0.01*)) + LREAL_TO_INT(NoiseSignal); // 10 ms Cycle Implemented
+{endregion}
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="2" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="19" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="83" Count="1" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="79" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="35" Count="1" />
+      <LineId Id="44" Count="2" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="11" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

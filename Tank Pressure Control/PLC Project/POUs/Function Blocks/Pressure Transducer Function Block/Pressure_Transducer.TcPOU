@@ -1,0 +1,94 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.15">
+  <POU Name="Pressure_Transducer" Id="{302221ad-eb51-4a9c-ae78-69484aab77d8}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK Pressure_Transducer
+VAR_INPUT
+	Input_mA						:	INT		:=	0;		//	Field Input Whereby 4 - 20mA Will Be Read As A 0 - 32768 Value From I/O Card
+	Sensor_Minimum_SI_Measurement	:	REAL	:=	0.000;	//	kPa (a)
+	Sensor_Maximum_SI_Measurement	:	REAL	:=	500.0;	//	kPa (a)
+	
+	//	Alarm Setpoints
+	High_Alarm_Setpoint				:	REAL	:=	480.0;	//	kPa(a)
+	Low_Alarm_Setpoint				:	REAL	:= 	87.00;	//	Kpa(a) @ Atmosphere
+END_VAR
+VAR_OUTPUT
+	Input_SI						:	lREAL	:=	0.0;	//	Field Input In SI units
+	
+	//	Alarming 
+	ScalingErrorDetected			: 	BOOL	:=	FALSE;
+	High_Alarm						:	BOOL	:=	FALSE;
+	Low_Alarm						:	BOOL	:=	FALSE;
+END_VAR
+VAR
+	Field_Measurement_Scaler		:	FB_CTRL_SCALE;		//	Function To Scale 4 - 20mA To 0 - 500kPa Measurement
+	ScalingErrorId					:	E_CTRL_ERRORCODES;
+	ScalingParameters				: 	ST_CTRL_SCALE_PARAMS;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[{Region "Scaling Setpoints"}
+ScalingParameters.fInMin				:=		0;
+ScalingParameters.fInMax				:=		32768;	//	16-Bit Analogue Input Card Maximum Reading (EL3024)
+ScalingParameters.fOutMin				:=		Sensor_Minimum_SI_Measurement;	//	kPa
+ScalingParameters.fOutMax				:=		Sensor_Maximum_SI_Measurement;	//	kPa
+ScalingParameters.tCtrlCycleTime		:=		T#10MS;
+ScalingParameters.tTaskCycleTime		:=		T#10MS;
+{endregion}
+
+{Region "Scale Input To SI Value"}
+Field_Measurement_Scaler(	fIn			:=	Input_mA,
+							fOut		=>	Input_SI,
+							eErrorId	=>	ScalingErrorId,
+							bError		=>	ScalingErrorDetected,
+							stParams	:=	ScalingParameters);
+{endregion}							
+							
+{region "Alarm_Detection"}
+//	Low Alarm Functionality: Single Shot Pulse Will Set An Event In The Event Manager
+IF(Input_SI <= Low_Alarm_Setpoint)THEN
+	Low_Alarm	:=	TRUE;
+ELSE
+	Low_Alarm	:=	FALSE;		 
+END_IF;
+	 
+//	High Alarm Functionality Single Shot Pulse Will Set An Event In The Event Manager
+IF(Input_SI >= High_Alarm_Setpoint)THEN
+	High_Alarm	:=	TRUE;
+ELSE
+	High_Alarm	:=	FALSE;		 
+END_IF;		  
+{endregion}						
+
+{Region "Trend Generation"}
+
+{endregion}	]]></ST>
+    </Implementation>
+    <LineIds Name="Pressure_Transducer">
+      <LineId Id="23" Count="0" />
+      <LineId Id="26" Count="3" />
+      <LineId Id="32" Count="1" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="45" Count="1" />
+      <LineId Id="49" Count="1" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="54" Count="4" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="84" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

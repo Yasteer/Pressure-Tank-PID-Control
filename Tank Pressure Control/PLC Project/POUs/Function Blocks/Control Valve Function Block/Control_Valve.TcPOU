@@ -1,0 +1,137 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.15">
+  <POU Name="Control_Valve" Id="{4cae56b0-421c-4b08-9e7b-e7128afd0b1f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK Control_Valve
+VAR_INPUT
+	Controller_Setpoint					: 	LREAL 		:= 	0.0;
+	Current_Process_Variable_Setpoint	:	LREAL 		:=	0.0;
+	Operator_Set_PID_Output_Value		: 	LREAL 		:= 	0.0;
+	
+	// PID Gains & Setpoints
+	Proportional_Gain					:	REAL		:=	3.0;
+	Integral_Gain						:	TIME		:=	T#1S;
+	Derivative_Gain						:	TIME		:=	T#0.25S;
+	Damping_Time						:	TIME		:=	T#0.1S;
+	Minimum_Output_Value				:	REAL		:=	0.0;
+	Maximum_Output_Value				:	REAL		:=	32768.0;
+	
+	//	PID Mode Selection
+	Manual_Automatic_Mode				:	INT			:=	PID_Modes.Automatic;
+END_VAR
+VAR_OUTPUT
+	IO_Valve_Reference					:	INT			:=	0;
+	HMI_Valve_Reference					:	LREAL		:=	0.0;
+	Error_Detected						: 	BOOL 		:= 	FALSE;
+END_VAR
+VAR
+	PID_Controller						:	FB_CTRL_PID;
+	
+	// Used For Bumpless Transfer Between Automatic & Manual Modes Of PID Controller.
+	bSync								: 	BOOL		:= FALSE;
+	PID_Controller_Mode: E_CTRL_MODE 	:= 	E_CTRL_MODE.eCTRL_MODE_IDLE;
+	Controller_Valve_Reference			:	LREAL		:=	0;
+	Hold_Output							: 	BOOL;
+	Restrict_Controller_Output			: 	BOOL;
+	Current_Controller_State			:	E_CTRL_STATE;
+	Error_Code							:	E_CTRL_ERRORCODES;
+	PID_Control_Parameters				:	ST_CTRL_PID_PARAMS;
+	
+	//	Output Scaling To HMI Visualisation
+	Output_Scaler						:	FB_CTRL_SCALE;
+	ScalingParameters					: 	ST_CTRL_SCALE_PARAMS;
+	ScalingErrorId						:	E_CTRL_ERRORCODES;
+	ScalingErrorDetected				: 	BOOL	:=	FALSE;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[{Region "PID Initialization"}
+PID_Control_Parameters.tCtrlCycleTime	:=	T#10MS;	
+PID_Control_Parameters.tTaskCycleTime	:=	T#10MS;	
+PID_Control_Parameters.fKp				:=	Proportional_Gain;
+PID_Control_Parameters.tTn				:=	Integral_Gain;
+PID_Control_Parameters.tTv				:=	Derivative_Gain;
+PID_Control_Parameters.tTd				:=	Damping_Time;
+PID_Control_Parameters.fOutMinLimit		:=	Minimum_Output_Value;
+PID_Control_Parameters.fOutMaxLimit		:=	Maximum_Output_Value;
+{endregion}
+
+{Region "PID Mode Selection"}
+IF(Manual_Automatic_Mode    = PID_Modes.Manual)THEN
+	PID_Controller_Mode					:=	E_CTRL_MODE.eCTRL_MODE_MANUAL;
+ELSIF(Manual_Automatic_Mode = PID_Modes.Automatic)THEN
+	PID_Controller_Mode					:=	E_CTRL_MODE.eCTRL_MODE_ACTIVE;
+ELSE
+	PID_Controller_Mode					:=	E_CTRL_MODE.eCTRL_MODE_IDLE;
+END_IF
+{endregion}
+
+{Region "PID Control"}
+PID_Controller(	fSetpointValue			:=	Controller_Setpoint,
+				fActualValue			:=	Current_Process_Variable_Setpoint,
+				fManSyncValue			:=	Operator_Set_PID_Output_Value,
+				bSync					:=	bSync,
+				eMode					:=	PID_Controller_Mode,
+				bHold					:=	Hold_Output,
+				fOut					=>	Controller_Valve_Reference,
+				bARWactive				=>	Restrict_Controller_Output,
+				eState					=>	Current_Controller_State,
+				eErrorId				=>	Error_Code,
+				bError					=>	Error_Detected,
+				stParams				:=	PID_Control_Parameters);
+				
+IO_Valve_Reference						:=	LREAL_TO_INT(Controller_Valve_Reference);	
+{endregion}
+
+{Region "PID Output Scaling"}
+ScalingParameters.fInMin				:=		0;
+ScalingParameters.fInMax				:=		32768;	//	16-Bit Analogue Input Card Maximum Reading (EL3024)
+ScalingParameters.fOutMin				:=		0;		//	%
+ScalingParameters.fOutMax				:=		100.0;	//	%
+ScalingParameters.tCtrlCycleTime		:=		T#10MS;
+ScalingParameters.tTaskCycleTime		:=		T#10MS;
+
+Output_Scaler(				fIn			:=	Controller_Valve_Reference,
+							fOut		=>	HMI_Valve_Reference,
+							eErrorId	=>	ScalingErrorId,
+							bError		=>	ScalingErrorDetected,
+							stParams	:=	ScalingParameters);
+{endregion}]]></ST>
+    </Implementation>
+    <LineIds Name="Control_Valve">
+      <LineId Id="109" Count="0" />
+      <LineId Id="112" Count="1" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="141" Count="2" />
+      <LineId Id="146" Count="1" />
+      <LineId Id="111" Count="0" />
+      <LineId Id="110" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="68" Count="1" />
+      <LineId Id="170" Count="1" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="16" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="18" Count="0" />
+      <LineId Id="31" Count="1" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="70" Count="1" />
+      <LineId Id="73" Count="1" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="78" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="106" Count="1" />
+      <LineId Id="17" Count="0" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="158" Count="4" />
+      <LineId Id="154" Count="0" />
+      <LineId Id="164" Count="4" />
+      <LineId Id="163" Count="0" />
+      <LineId Id="153" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
