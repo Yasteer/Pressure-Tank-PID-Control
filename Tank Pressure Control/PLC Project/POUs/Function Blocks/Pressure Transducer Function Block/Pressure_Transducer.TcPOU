@@ -24,6 +24,13 @@ VAR
 	ScalingErrorId					:	E_CTRL_ERRORCODES;
 	ScalingParameters				: 	ST_CTRL_SCALE_PARAMS;
 END_VAR
+
+VAR	//	Trend Variables
+	SamplingTimer					:	TON;
+	SampleInterval					:	TIME	:= T#250MS;
+	DataArray						:	ARRAY[1..1000] OF REAL;
+	ArrayIndex						:	INT     := 	1;	
+END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[{Region "Scaling Setpoints"}
@@ -59,35 +66,22 @@ ELSE
 END_IF;		  
 {endregion}						
 
-{Region "Trend Generation"}
-
-{endregion}	]]></ST>
+{region	"Trend Generation"}
+	IF(NOT SamplingTimer.Q)THEN
+		SamplingTimer(In := TRUE,   PT := SampleInterval, Q=> , ET => );		//Start the timer
+	ELSE	
+		SamplingTimer(In := FALSE,  PT := SampleInterval, Q=> , ET => );		//Reset the timer
+	 				  
+		FOR ArrayIndex := 1 TO 999 BY 1 DO										//Shift the content in the array up by 1
+			DataArray[ArrayIndex] := DataArray[ArrayIndex + 1];	 			//But it skips the last element (1000)
+		END_FOR;	
+			 
+		DataArray[1000]				:=	Input_SI;								//This added the new reading to the last element (1000)
+	END_IF;
+{endregion}]]></ST>
     </Implementation>
     <LineIds Name="Pressure_Transducer">
-      <LineId Id="23" Count="0" />
-      <LineId Id="26" Count="3" />
-      <LineId Id="32" Count="1" />
-      <LineId Id="25" Count="0" />
-      <LineId Id="34" Count="0" />
-      <LineId Id="24" Count="0" />
-      <LineId Id="9" Count="0" />
-      <LineId Id="12" Count="0" />
-      <LineId Id="14" Count="0" />
-      <LineId Id="17" Count="0" />
-      <LineId Id="20" Count="1" />
-      <LineId Id="18" Count="0" />
-      <LineId Id="15" Count="0" />
-      <LineId Id="51" Count="0" />
-      <LineId Id="45" Count="1" />
-      <LineId Id="49" Count="1" />
-      <LineId Id="48" Count="0" />
-      <LineId Id="52" Count="0" />
-      <LineId Id="54" Count="4" />
-      <LineId Id="53" Count="0" />
-      <LineId Id="44" Count="0" />
-      <LineId Id="83" Count="0" />
-      <LineId Id="82" Count="0" />
-      <LineId Id="85" Count="0" />
+      <LineId Id="387" Count="44" />
       <LineId Id="84" Count="0" />
     </LineIds>
   </POU>

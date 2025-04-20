@@ -47,10 +47,10 @@ RandomFlowGenerator(fManSyncValue	:=	20.0,
 
 {Region "Simulate Field Input"}
 // Simulate inflow proportional to valve position
-fInflowRate := Input_Control_Valve.HMI_Valve_Reference * 330.0; // Max 10 kPa/sec new 300
+fInflowRate := Input_Control_Valve.HMI_Valve_Reference * 330.0;
 
 // Update tank pressure
-Simulated_Pressure_From_IO_Card := LREAL_TO_INT(Simulated_Pressure_From_IO_Card*0.05 + (fInflowRate - fOutflowRate)(* * 0.01*)) + LREAL_TO_INT(NoiseSignal); // 10 ms Cycle Implemented
+Simulated_Pressure_From_IO_Card := LREAL_TO_INT(Simulated_Pressure_From_IO_Card*0.05 + (fInflowRate - fOutflowRate)) + LREAL_TO_INT(NoiseSignal);
 {endregion}
 ]]></ST>
     </Implementation>
