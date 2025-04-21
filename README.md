@@ -10,7 +10,7 @@ The goal is to simulate and visualize a closed-loop control system that maintain
 
 ## 📸 Demo
 
-![SCADA Demo](PID_Demo.gif)
+![SCADA Demo](DemoScreens/PID_Demo.gif)
 
 ---
 
